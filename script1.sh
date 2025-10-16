@@ -1,3 +1,21 @@
+#!/bin/bash
+if [ $# -eq 0 ]; then
+    echo "ERROR: Введите хотя бы 1 аргумент!"
+    exit 1
+fi
+if [ $# -gt 4 ]; then
+    echo "ERROR: Введено слишком много аргументов!"
+    exit 1
+fi
+F_PATH="$1"
+if [ ! -d "$F_PATH" ]; then
+    echo "ERROR: Папка '$F_PATH' не существует!" >&2
+    exit 1
+fi
+if [ ! -x "/usr/bin/bc" ]; then
+    echo "ERROR: bc не установлен в системе. Для работы необходимо установить его через: sudo apt install bc." >&2
+    exit 1
+fi
 FOLDER_S=$(du -sb "$F_PATH" 2>/dev/null | cut -f1)
 FS_S=$(df -B1 "$F_PATH" 2>/dev/null | awk 'NR==2 {print $2}')
 if [ -z "$FOLDER_S" ] || [ -z "$FS_S" ]; then

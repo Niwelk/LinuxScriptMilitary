@@ -18,3 +18,13 @@ if [ $# -lt 5 ] && [ $# -gt 1 ]; then
             exit 1
         fi
         echo "Найдено файлов для архивации: $(wc -l < "$F_LIST")"
+		echo "Step 1: Архивирование..."
+        tar -czf "$ARCHIVE_PATH/$NAME" -T "$F_LIST" .
+        if [ $? -ne 0 ]; then
+            echo "ERROR: Ошибка архивирования!"
+            rm -f "$F_LIST"
+            exit 1
+        fi
+        echo "Step 2: Проверка архива..."
+        if tar -tzf "$ARCHIVE_PATH/$NAME" > /dev/null; then
+            echo "Проверка архива прошла успешно."
