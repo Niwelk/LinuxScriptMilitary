@@ -9,7 +9,7 @@ echo
 
 echo "[Тест 2] Слишком много аргументов"
 echo "Ожидается: ERROR: Введено слишком много аргументов!"
-./script.sh arg1 arg2 arg3 arg4 arg5
+./script.sh arg1 arg2 arg3 arg4 arg5 arg6
 echo
 
 echo "=== Тест 3: Несуществующая папка ==="
@@ -29,9 +29,11 @@ TEST_DIR=$(mktemp -d)
 echo "Создана временная папка: $TEST_DIR"
 echo "Создаем файлы общим размером ~0.6 GB..."
 
+
 for i in {1..100}; do
     dd if=/dev/zero of="$TEST_DIR/large_file_$i.dat" bs=1M count=6 2>/dev/null
 done
+
 
 mkdir -p "$TEST_DIR/subdir"
 for i in {1..10}; do
@@ -41,20 +43,21 @@ done
 
 echo "Размер папки: $(du -sh "$TEST_DIR" | cut -f1)"
 echo "Ожидается: Заполненность папки и выход"
-./script.sh "$TEST_DIR"
-echo
+./script.sh "$TEST_DIR" 0
+echo "Версия через монтирование:"
+./script.sh "$TEST_DIR" 1
 
 echo "[Тест 6] Архивация с низким порогом (архивация должна выполниться)"
 ARCHIVE_DIR=$(mktemp -d)
 echo "Папка для архива: $ARCHIVE_DIR"
 echo "Размер исходной папки: $(du -sh "$TEST_DIR" | cut -f1)"
-./script.sh "$TEST_DIR" "$ARCHIVE_DIR" 0.00000001 3
+./script.sh "$TEST_DIR" 0 "$ARCHIVE_DIR" 0.000001 3
 echo "Проверяем создание архива..."
 find "$ARCHIVE_DIR" -name "*.tar.gz" 2>/dev/null | head -5
 echo
 
 echo "[Тест 7] Архивация с высоким порогом (архивация НЕ выполнится)"
-./script.sh "$TEST_DIR" "$ARCHIVE_DIR" 90 5
+./script.sh "$TEST_DIR" 0 "$ARCHIVE_DIR" 90 5
 echo
 
 echo "очищаем файлы"
