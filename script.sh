@@ -39,28 +39,46 @@ if [ $WORK_MODE -eq 0 ]; then
         NEW=$(awk "BEGIN {printf \"%.11f\", $PERCENT}")
     fi
 else
-    dd if=/dev/zero of="/tmp/virtual_disk.img" bs="2G" count=1 >/dev/null 2>&1
-    mkfs.ext4 -q "/tmp/virtual_disk.img" >/dev/null 2>&1
-    mkdir -p "/mnt/virtual_check"
-    mount -o loop "/tmp/virtual_disk.img" "/mnt/virtual_check" >/dev/null 2>&1
-    if ! mount | grep -q "/mnt/virtual_check"; then
+    VDDR="${HOME}/.cache/vdisk"
+    mkdir -p "$VDDR"
+    V_DISK="${VDDR}/v_disk.img"
+    MP="${VDDR}/mp"
+    dd if=/dev/zero of="$V_DISK" bs=2G count=1 >/dev/null 2>&1
+    mkfs.ext4 -q -F "$V_DISK" >/dev/null 2>&1
+    mkdir -p "$MP"
+    if which fuse2fs >/dev/null 2>&1; then
+        fuse2fs "$V_DISK" "$MP" >/dev/null 2>&1
+    elif which fuse-ext2 >/dev/null 2>&1; then
+        fuse-ext2 "$V_DISK" "$MP" -o rw+ >/dev/null 2>&1
+    else
+        echo "ERROR: FUSE драйвер не установлен." >&2
+        rm -f "$V_DISK"
+        rmdir "$MP"
+        exit 1
+    fi
+    if ! df "$MP" 2>/dev/null | grep -q "$MP"; then
         echo "ERROR: Не удалось смонтировать виртуальный диск!"
+        fuse2fs -o loop "$V_DISK" "$MP" 2>&1
+        rm -f "$V_DISK"
+        rmdir "$MP"
+
         exit 1
     fi
-    if ! cp -r "$F_PATH" "/mnt/virtual_check/" 2>/dev/null; then
+    if ! cp -r "$F_PATH" "$MP" 2>/dev/null; then
         echo "ERROR: Папка не помещается в виртуальный диск 2G!"
-        umount "/mnt/virtual_check" >/dev/null 2>&1
-        rm -f "/tmp/virtual_disk.img"
-        rmdir "/mnt/virtual_check"
+        fusermount -u "$MP" >/dev/null 2>&1
+        rm -f "$V_DISK"
+        rmdir "$MP"
         exit 1
     fi
-    NEW=$(df "/mnt/virtual_check" | awk 'NR==2 {gsub(/%/, "", $5); print $5}')
+    NEW=$(df "$MP" | awk 'NR==2 {gsub(/%/, "", $5); print $5}')
     if [ "$NEW" -le 1 ]; then
         NEW=0
     fi
-    umount "/mnt/virtual_check" >/dev/null 2>&1
-    rm -f "/tmp/virtual_disk.img"
-    rmdir "/mnt/virtual_check"
+    fusermount -u "$MP" >/dev/null 2>&1
+    rm -f "$V_DISK"
+    rmdir "$MP" 2>/dev/null
+    rmdir "$VDDR" 2>/dev/null
     echo "Заполненность папки в виртуальном диске 2G: $NEW%"
 fi
 if [ $# -lt 6 ] && [ $# -gt 2 ]; then
