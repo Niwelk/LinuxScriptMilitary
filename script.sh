@@ -38,12 +38,12 @@ if [ $WORK_MODE -eq 0 ]; then
         echo "Заполненность папки: ${NEW}%"
         NEW=$(awk "BEGIN {printf \"%.11f\", $PERCENT}")
     fi
-else
+ else
     VDDR="${HOME}/.cache/vdisk"
     mkdir -p "$VDDR"
     V_DISK="${VDDR}/v_disk.img"
     MP="${VDDR}/mp"
-    dd if=/dev/zero of="$V_DISK" bs=2G count=1 >/dev/null 2>&1
+    dd if=/dev/zero of="$V_DISK" bs=1M count=2048 >/dev/null 2>&1
     mkfs.ext4 -q -F "$V_DISK" >/dev/null 2>&1
     mkdir -p "$MP"
     if which fuse2fs >/dev/null 2>&1; then
@@ -56,15 +56,15 @@ else
         rmdir "$MP"
         exit 1
     fi
+    sleep 2
     if ! df "$MP" 2>/dev/null | grep -q "$MP"; then
         echo "ERROR: Не удалось смонтировать виртуальный диск!"
         fuse2fs -o loop "$V_DISK" "$MP" 2>&1
         rm -f "$V_DISK"
         rmdir "$MP"
-
         exit 1
     fi
-    if ! cp -r "$F_PATH" "$MP" 2>/dev/null; then
+    if ! cp -rv "$F_PATH" "$MP" 2>/dev/null; then
         echo "ERROR: Папка не помещается в виртуальный диск 2G!"
         fusermount -u "$MP" >/dev/null 2>&1
         rm -f "$V_DISK"
@@ -77,8 +77,8 @@ else
     fi
     fusermount -u "$MP" >/dev/null 2>&1
     rm -f "$V_DISK"
-    rmdir "$MP" 2>/dev/null
-    rmdir "$VDDR" 2>/dev/null
+    rm -f "$MP" 2>/dev/null
+    rm -f "$VDDR" 2>/dev/null
     echo "Заполненность папки в виртуальном диске 2G: $NEW%"
 fi
 if [ $# -lt 6 ] && [ $# -gt 2 ]; then
